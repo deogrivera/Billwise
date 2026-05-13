@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>BillWise</title>
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-top: #e8e8f0;
+  --bg-mid: #dde0eb;
+  --bg-bot: #d0d4e8;
+  --glass: rgba(255,255,255,0.55);
+  --glass-border: rgba(255,255,255,0.85);
+  --glass-shine: rgba(255,255,255,0.9);
+  --glass-heavy: rgba(255,255,255,0.7);
+  --text: #1a1a2e;
+  --text2: rgba(26,26,46,0.6);
+  --text3: rgba(26,26,46,0.35);
+  --accent: #6c5ce7;
+  --accent-soft: rgba(108,92,231,0.18);
+  --green: #00b894;
+  --green-soft: rgba(0,184,148,0.18);
+  --red: #e84393;
+  --red-soft: rgba(232,67,147,0.15);
+  --gold: #f39c12;
+  --gold-soft: rgba(243,156,18,0.18);
+  --c15: #6c5ce7;
+  --c30: #e67e22;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+
+/* ── Animated gradient background ── */
+body {
+  background: linear-gradient(145deg, #eceef5 0%, #e0e3ef 35%, #d8dcee 65%, #eceef5 100%);
+  background-size: 400% 400%;
+  animation: bgShift 18s ease infinite;
+}
+@keyframes bgShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Floating orbs for depth */
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(80px);
+  pointer-events: none; z-index: 0; animation: float 12s ease-in-out infinite;
+}
+.orb1 { width:280px; height:280px; background:rgba(108,92,231,0.1); top:-80px; right:-60px; animation-delay:0s; }
+.orb2 { width:220px; height:220px; background:rgba(0,184,148,0.08); bottom:120px; left:-60px; animation-delay:-4s; }
+.orb3 { width:180px; height:180px; background:rgba(230,126,34,0.07); top:40%; right:-40px; animation-delay:-8s; }
+@keyframes float {
+  0%,100% { transform: translateY(0px) scale(1); }
+  50%      { transform: translateY(-30px) scale(1.05); }
+}
+
+#app {
+  height: 100vh; display: flex; flex-direction: column;
+  position: relative; z-index: 1; max-width: 430px; margin: 0 auto;
+}
+
+/* ── Glass mixin ── */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-border);
+}
+.glass-heavy {
+  background: var(--glass-heavy);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Header ── */
+.header {
+  padding: 56px 20px 0;
+  background: linear-gradient(180deg, rgba(236,238,245,0.85) 0%, transparent 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.app-title {
+  font-size: 32px; font-weight: 700; color: var(--text); letter-spacing: -0.8px;
+}
+.app-title span {
+  background: linear-gradient(135deg, #a78bfa, #7c6cff, #60a5fa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.date-pill {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 12px; color: var(--text2); font-weight: 500; letter-spacing: 0.2px;
+}
+
+/* ── Nav tabs ── */
+.nav-tabs {
+  display: flex; gap: 6px; padding: 12px 20px;
+}
+.nav-tab {
+  flex: 1; padding: 10px; border-radius: 14px;
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.8);
+  color: var(--text2); cursor: pointer;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.1px;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.nav-tab.active {
+  background: rgba(108,92,231,0.18);
+  border-color: rgba(108,92,231,0.35);
+  color: var(--c15);
+  box-shadow: 0 4px 20px rgba(108,92,231,0.15), inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+/* ── Month switcher ── */
+.month-switcher {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 20px 10px;
+}
+.ms-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.9);
+  color: var(--text); font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.ms-btn:active { transform: scale(0.88); background: rgba(255,255,255,0.8); }
+.ms-label { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+.ms-today {
+  font-size: 11px; padding: 5px 12px; border-radius: 20px;
+  background: rgba(124,108,255,0.2); border: 1px solid rgba(167,139,250,0.35);
+  color: var(--c15); cursor: pointer; font-weight: 600;
+}
+
+/* ── Salary tabs ── */
+.salary-tabs { display:flex; gap:6px; padding: 0 20px 10px; }
+.stab {
+  flex:1; padding: 9px; border-radius: 12px; cursor:pointer;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.2px;
+  border: none; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.8); color: var(--text2);
+}
+.stab.tall.active { background:rgba(52,211,153,0.2); border-color:rgba(52,211,153,0.4); color:var(--green); box-shadow: 0 2px 12px rgba(52,211,153,0.2); }
+.stab.t15.active  { background:rgba(124,108,255,0.25); border-color:rgba(167,139,250,0.5); color:var(--c15); box-shadow: 0 2px 12px rgba(124,108,255,0.25); }
+.stab.t30.active  { background:rgba(251,146,60,0.2); border-color:rgba(251,146,60,0.4); color:var(--c30); box-shadow: 0 2px 12px rgba(251,146,60,0.2); }
+
+/* ── Summary cards ── */
+.summary { display:flex; gap:8px; padding: 0 20px 10px; overflow-x:auto; scrollbar-width:none; }
+.summary::-webkit-scrollbar { display:none; }
+.sum-card {
+  flex: 0 0 auto; min-width: 110px;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+.sum-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent);
+}
+.sum-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px; font-weight: 600; }
+.sum-value { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.sum-value.green { color: var(--green); }
+.sum-value.red   { color: var(--red); }
+.sum-value.purple{ color: #a78bfa; }
+
+/* Progress */
+.progress-wrap { padding: 0 20px 6px; }
+.progress-bar { height: 3px; background: rgba(0,0,0,0.08); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+/* ── Bill list ── */
+.list-wrap { flex:1; overflow-y:auto; padding: 4px 16px 96px; scrollbar-width:none; }
+.list-wrap::-webkit-scrollbar { display:none; }
+.section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  color: var(--text3); text-transform: uppercase;
+  margin: 14px 4px 8px; padding-left: 2px;
+}
+
+.bill-card {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; position: relative; overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+/* Shine line at top */
+.bill-card::before {
+  content:''; position:absolute; top:0; left:10%; right:10%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent);
+}
+/* Left accent bar */
+.bill-card::after {
+  content:''; position:absolute; left:0; top:14%; bottom:14%;
+  width:3px; border-radius:0 3px 3px 0;
+}
+.bill-card.cycle15::after { background: linear-gradient(180deg, var(--c15), rgba(108,92,231,0.3)); }
+.bill-card.cycle30::after { background: linear-gradient(180deg, var(--c30), rgba(230,126,34,0.3)); }
+.bill-card.paid { opacity: 0.5; }
+.bill-card.paid .bill-name { text-decoration: line-through; text-decoration-color: rgba(26,26,46,0.25); }
+.bill-card:active { transform: scale(0.98); background: rgba(255,255,255,0.7); }
+
+.bill-icon {
+  width: 42px; height: 42px; border-radius: 14px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.95);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1);
+}
+.bill-info { flex:1; min-width:0; }
+.bill-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing: -0.2px; }
+.bill-meta { font-size: 11px; color: var(--text3); font-weight: 500; }
+.bill-right { text-align: right; flex-shrink: 0; }
+.bill-amount { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; letter-spacing: -0.3px; }
+.bill-due { font-size: 10px; color: var(--text3); font-weight: 500; }
+.bill-due.overdue { color: var(--red); font-weight: 600; }
+
+.check-btn {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.5);
+  border: 1.5px solid rgba(0,0,0,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: transparent; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  cursor: pointer;
+}
+.check-btn.paid-check {
+  background: rgba(0,184,148,0.18);
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(0,184,148,0.25);
+}
+
+/* ── Empty state ── */
+.empty-state { text-align:center; padding:48px 20px; color:var(--text3); }
+.empty-state .emoji { font-size:44px; margin-bottom:14px; }
+.empty-state p { font-size:14px; line-height:1.7; }
+
+/* ── Monthly calendar view ── */
+.month-wrap { flex:1; overflow-y:auto; padding: 0 14px 96px; scrollbar-width:none; display:none; }
+.month-wrap::-webkit-scrollbar { display:none; }
+.cal-month-nav { display:flex; align-items:center; justify-content:space-between; padding: 4px 6px 14px; }
+.cal-nav-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.9);
+  color: var(--text); font-size: 18px; cursor: pointer;
+  display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+}
+.cal-nav-btn:active { transform:scale(0.88); }
+.cal-month-title { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing:-0.3px; }
+
+/* Salary summary bands */
+.sal-band {
+  border-radius: var(--radius-md); padding: 11px 14px;
+  margin-bottom: 8px; display:flex; align-items:center; gap:10px;
+  font-size: 12px; font-weight: 500; position:relative; overflow:hidden;
+}
+.sal-band::before {
+  content:''; position:absolute; top:0; left:10%; right:10%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+}
+.sal-band.s15 {
+  background: rgba(108,92,231,0.1);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(108,92,231,0.25); color: var(--c15);
+}
+.sal-band.s30 {
+  background: rgba(230,126,34,0.1);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(230,126,34,0.25); color: var(--c30);
+}
+.sal-band strong { font-weight: 700; font-size: 13px; }
+
+/* Calendar grid */
+.cal-dow-row { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:3px; }
+.cal-dow { text-align:center; font-size:9px; font-weight:700; color:var(--text3); letter-spacing:1px; padding:5px 0; text-transform:uppercase; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:14px; }
+
+.cal-day {
+  aspect-ratio:1; border-radius:11px;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:flex-start; padding-top:5px;
+  cursor:pointer;
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(255,255,255,0.8);
+  transition: all 0.2s; position:relative; overflow:hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+.cal-day::before {
+  content:''; position:absolute; top:0; left:20%; right:20%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+}
+.cal-day.empty { background:transparent; border-color:transparent; cursor:default; box-shadow:none; }
+.cal-day.empty::before { display:none; }
+.cal-day.is-today { background:rgba(108,92,231,0.15); border-color:rgba(108,92,231,0.4); box-shadow: 0 0 14px rgba(108,92,231,0.15); }
+.cal-day.is-today .day-num { color: var(--c15); font-weight:800; }
+.cal-day.is-sal15 { border-color:rgba(108,92,231,0.3); }
+.cal-day.is-sal30 { border-color:rgba(230,126,34,0.3); }
+.cal-day.is-sel { background:rgba(0,184,148,0.12); border-color:rgba(0,184,148,0.4); box-shadow: 0 0 14px rgba(0,184,148,0.12); }
+.cal-day:not(.empty):active { transform:scale(0.92); }
+
+.day-num { font-size: 11px; font-weight: 600; color:var(--text2); line-height:1; }
+.day-sal { font-size:7px; line-height:1; margin-top:1px; font-weight:700; }
+.day-sal.s15 { color:var(--c15); } .day-sal.s30 { color:var(--c30); }
+.day-dots { display:flex; flex-wrap:wrap; gap:2px; justify-content:center; margin-top:3px; max-width:88%; }
+.day-dot { width:5px; height:5px; border-radius:50%; }
+.day-dot.c15 { background:var(--c15); }
+.day-dot.c30 { background:var(--c30); }
+.day-dot.cpaid { background:var(--green); opacity:0.8; }
+
+/* Day bills panel */
+.day-panel-label { font-size:11px; font-weight:700; letter-spacing:1.5px; color:var(--text3); text-transform:uppercase; margin-bottom:10px; padding-left:2px; }
+.day-bill-row {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  margin-bottom: 8px; display:flex; align-items:center; gap:10px;
+  cursor:pointer; position:relative; overflow:hidden; transition:all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.day-bill-row::before { content:''; position:absolute; top:0; left:10%; right:10%; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,1),transparent); }
+.day-bill-row::after { content:''; position:absolute; left:0; top:15%; bottom:15%; width:3px; border-radius:0 3px 3px 0; }
+.day-bill-row.cycle15::after { background:var(--c15); }
+.day-bill-row.cycle30::after { background:var(--c30); }
+.day-bill-row.paid { opacity:0.45; }
+.day-bill-row:active { transform:scale(0.98); }
+.dbr-name { font-size:14px; font-weight:600; color:var(--text); letter-spacing:-0.2px; }
+.dbr-meta { font-size:11px; color:var(--text3); }
+.dbr-amt { font-size:14px; font-weight:700; color:var(--text); margin-left:auto; margin-right:8px; white-space:nowrap; letter-spacing:-0.2px; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: 32px; right: 24px;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: rgba(108,92,231,0.25);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid rgba(108,92,231,0.4);
+  color: var(--c15); font-size: 28px; cursor: pointer;
+  box-shadow: 0 8px 32px rgba(108,92,231,0.25), inset 0 1px 0 rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 100;
+}
+.fab:active { transform: scale(0.9); }
+
+/* ── Modal / Sheet ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(180,185,210,0.4);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  z-index: 200; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity 0.3s;
+}
+.overlay.show { opacity:1; pointer-events:all; }
+.sheet {
+  background: rgba(240,241,248,0.88);
+  backdrop-filter: blur(50px) saturate(200%);
+  -webkit-backdrop-filter: blur(50px) saturate(200%);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-bottom: none;
+  border-radius: 28px 28px 0 0;
+  padding: 24px 20px 44px; width:100%; max-width:430px;
+  transform: translateY(40px); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+  max-height: 92vh; overflow-y: auto;
+  box-shadow: 0 -12px 40px rgba(0,0,0,0.12);
+  position: relative;
+}
+.sheet::before {
+  content:''; position:absolute; top:0; left:15%; right:15%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent);
+}
+.sheet-handle { width:36px; height:5px; background:rgba(0,0,0,0.15); border-radius:3px; margin:0 auto 22px; }
+.sheet-title { font-size:22px; font-weight:700; color:var(--text); margin-bottom:22px; letter-spacing:-0.4px; }
+
+.form-group { margin-bottom:14px; }
+.form-label { font-size:11px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; margin-bottom:7px; display:block; font-weight:600; }
+.form-input {
+  width:100%; background:rgba(255,255,255,0.65);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.9); border-radius:var(--radius-sm);
+  padding:13px 14px; color:var(--text); font-size:16px;
+  outline:none; transition:border-color 0.2s; -webkit-appearance:none;
+  font-family: inherit;
+}
+.form-input::placeholder { color: var(--text3); }
+.form-input:focus { border-color: rgba(108,92,231,0.5); background:rgba(255,255,255,0.8); }
+.form-input option { background:#f0f1f8; color:#1a1a2e; }
+
+.cycle-row { display:flex; gap:8px; }
+.cycle-btn {
+  flex:1; padding:12px; border-radius:var(--radius-sm);
+  background:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.85);
+  color:var(--text2); cursor:pointer; font-size:14px; font-weight:600;
+  font-family:inherit; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.cycle-btn.sel15 { background:rgba(108,92,231,0.15); border-color:rgba(108,92,231,0.4); color:var(--c15); box-shadow:0 4px 16px rgba(108,92,231,0.15); }
+.cycle-btn.sel30 { background:rgba(230,126,34,0.15); border-color:rgba(230,126,34,0.4); color:var(--c30); box-shadow:0 4px 16px rgba(230,126,34,0.15); }
+
+.btn-save {
+  width:100%; padding:15px; border-radius:var(--radius-md);
+  background: rgba(108,92,231,0.2);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(108,92,231,0.4);
+  color: var(--c15); font-size:16px; font-weight:700;
+  font-family:inherit; cursor:pointer; margin-top:10px;
+  box-shadow: 0 4px 20px rgba(108,92,231,0.15), inset 0 1px 0 rgba(255,255,255,0.7);
+  transition:all 0.2s; letter-spacing:-0.1px;
+}
+.btn-save:active { transform:scale(0.97); opacity:0.85; }
+.btn-del {
+  width:100%; padding:13px; border-radius:var(--radius-md);
+  background:rgba(232,67,147,0.08); border:1px solid rgba(232,67,147,0.25);
+  color:var(--red); font-size:14px; font-weight:600;
+  font-family:inherit; cursor:pointer; margin-top:8px; transition:all 0.2s;
+}
+.btn-del:active { transform:scale(0.97); }
+
+/* Toast */
+.toast {
+  position:fixed; top:56px; left:50%;
+  transform:translateX(-50%) translateY(-8px);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,0.95);
+  border-radius:20px; padding:10px 18px;
+  font-size:13px; font-weight:500; color:var(--text);
+  z-index:999; opacity:0; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  pointer-events:none; white-space:nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,1);
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- Background depth orbs -->
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="app-title">Bill<span>Wise</span></div>
+      <div class="date-pill" id="dateDisplay"></div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="navBills" onclick="setView('bills')">📋 Bills</button>
+      <button class="nav-tab"        id="navMonth" onclick="setView('month')">📅 Monthly</button>
+    </div>
+  </div>
+
+  <!-- BILLS VIEW -->
+  <div id="billsView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="month-switcher">
+      <button class="ms-btn" onclick="changeBillsMonth(-1)">‹</button>
+      <div class="ms-label" id="billsMonthLabel"></div>
+      <button class="ms-today" onclick="jumpToToday()">Today</button>
+      <button class="ms-btn" onclick="changeBillsMonth(1)">›</button>
+    </div>
+    <div class="salary-tabs">
+      <button class="stab tall active" onclick="setFilter('all')">All</button>
+      <button class="stab t15"         onclick="setFilter('15')">15th</button>
+      <button class="stab t30"         onclick="setFilter('30')">30th</button>
+    </div>
+    <div class="summary" id="summaryCards"></div>
+    <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div></div>
+    <div class="list-wrap" id="billList"></div>
+  </div>
+
+  <!-- MONTHLY VIEW -->
+  <div class="month-wrap" id="monthView">
+    <div class="cal-month-nav">
+      <button class="cal-nav-btn" onclick="changeCalMonth(-1)">‹</button>
+      <div class="cal-month-title" id="calMonthTitle"></div>
+      <button class="cal-nav-btn" onclick="changeCalMonth(1)">›</button>
+    </div>
+    <div id="salaryBands"></div>
+    <div class="cal-dow-row" id="calDows"></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div id="dayBillsArea"></div>
+  </div>
+
+  <button class="fab" onclick="openAdd()">＋</button>
+</div>
+
+<!-- Sheet modal -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheetTitle">Add Bill</div>
+    <div class="form-group">
+      <label class="form-label">Bill Name</label>
+      <input class="form-input" id="fName" placeholder="e.g. Meralco, Netflix…" autocomplete="off"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount (₱)</label>
+      <input class="form-input" id="fAmount" type="number" placeholder="0.00" inputmode="decimal"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Due Day of Month</label>
+      <input class="form-input" id="fDue" type="number" min="1" max="31" placeholder="e.g. 5, 15, 28…" inputmode="numeric"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Pay From Salary</label>
+      <div class="cycle-row">
+        <button class="cycle-btn" id="btn15" onclick="setCycle('15')">💜 15th</button>
+        <button class="cycle-btn" id="btn30" onclick="setCycle('30')">🟡 30th</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-input" id="fCat">
+        <option value="⚡">⚡ Electricity</option>
+        <option value="💧">💧 Water</option>
+        <option value="📱">📱 Phone / Internet</option>
+        <option value="🏠">🏠 Rent</option>
+        <option value="🎬">🎬 Streaming</option>
+        <option value="🏦">🏦 Loan / Credit</option>
+        <option value="🚗">🚗 Transport</option>
+        <option value="🛒">🛒 Groceries</option>
+        <option value="💊">💊 Health</option>
+        <option value="📦">📦 Other</option>
+      </select>
+    </div>
+    <button class="btn-save" onclick="saveBill()">Save Bill</button>
+    <button class="btn-del" id="deleteBtn" onclick="deleteBill()" style="display:none">Delete Bill</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── Data model ──
+   bills[]    = [{id,name,amount,due,cycle,cat}]
+   payments   = { "id_YYYY-MM": true }
+─────────────────── */
+const BILLS_KEY    = 'billwise_bills_v3';
+const PAYMENTS_KEY = 'billwise_payments_v3';
+let bills = [], payments = {};
+
+const _now = new Date();
+let billsMonth = _now.getMonth(), billsYear = _now.getFullYear();
+let calMonth   = _now.getMonth(), calYear   = _now.getFullYear();
+let filter = 'all', currentView = 'bills';
+let editId = null, selectedCycle = '15', selectedDay = null;
+
+const MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOWS    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+/* Storage */
+function load(){
+  try{ bills    = JSON.parse(localStorage.getItem(BILLS_KEY))    ||[]; }catch{ bills=[];    }
+  try{ payments = JSON.parse(localStorage.getItem(PAYMENTS_KEY)) ||{}; }catch{ payments={}; }
+  // migrate old paid flag
+  let m=false;
+  bills.forEach(b=>{ if(typeof b.paid!=='undefined'){ if(b.paid){ payments[pKey(b.id,_now.getFullYear(),_now.getMonth())]=true; } delete b.paid; m=true; } });
+  if(m) saveAll();
+  if(!bills.length) seed();
+}
+function saveAll(){
+  localStorage.setItem(BILLS_KEY,    JSON.stringify(bills));
+  localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments));
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function seed(){
+  bills=[
+    {id:uid(),name:'Meralco',    amount:2800,due:10,cycle:'15',cat:'⚡'},
+    {id:uid(),name:'Maynilad',   amount:850, due:12,cycle:'15',cat:'💧'},
+    {id:uid(),name:'Globe Home', amount:1599,due:20,cycle:'30',cat:'📱'},
+    {id:uid(),name:'Netflix',    amount:549, due:25,cycle:'30',cat:'🎬'},
+    {id:uid(),name:'SSS Loan',   amount:3000,due:5, cycle:'15',cat:'🏦'},
+    {id:uid(),name:'Credit Card',amount:5000,due:28,cycle:'30',cat:'🏦'},
+  ];
+  saveAll();
+}
+
+/* Payment helpers */
+function pKey(id,yr,mo){ return `${id}_${yr}-${String(mo+1).padStart(2,'0')}`; }
+function isPaid(id,yr,mo){ return !!payments[pKey(id,yr,mo)]; }
+function setPaid(id,yr,mo,val){ const k=pKey(id,yr,mo); if(val) payments[k]=true; else delete payments[k]; saveAll(); }
+
+/* Utilities */
+function fmt(n){ return Number(n).toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function todayD(){ return new Date(); }
+function formatDate(){ return todayD().toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'}); }
+function getDueStatus(due,yr,mo){
+  const d=todayD();
+  const isCur=yr===d.getFullYear()&&mo===d.getMonth();
+  if(!isCur){ return yr<d.getFullYear()||(yr===d.getFullYear()&&mo<d.getMonth()) ? {label:'Past',ov:false} : {label:`Due ${due}th`,ov:false}; }
+  const diff=Math.ceil((new Date(yr,mo,due)-d)/86400000);
+  if(diff===0) return{label:'Due today!',ov:true};
+  if(diff<0)   return{label:'Overdue!',ov:true};
+  if(diff<=3)  return{label:`Due in ${diff}d`,ov:true};
+  return{label:`Due ${due}th`,ov:false};
+}
+
+/* View */
+function setView(v){
+  currentView=v;
+  document.getElementById('navBills').classList.toggle('active',v==='bills');
+  document.getElementById('navMonth').classList.toggle('active',v==='month');
+  document.getElementById('billsView').style.display=v==='bills'?'flex':'none';
+  document.getElementById('monthView').style.display=v==='month'?'block':'none';
+  if(v==='month') renderCal(); else renderBills();
+}
+
+/* Bills month nav */
+function changeBillsMonth(d){ billsMonth+=d; if(billsMonth>11){billsMonth=0;billsYear++;} if(billsMonth<0){billsMonth=11;billsYear--;} renderBills(); }
+function jumpToToday(){ const n=todayD(); billsMonth=n.getMonth(); billsYear=n.getFullYear(); renderBills(); }
+
+/* Filter */
+function setFilter(f){
+  filter=f;
+  document.querySelectorAll('.salary-tabs .stab').forEach(t=>t.classList.remove('active'));
+  const idx=f==='all'?0:f==='15'?1:2;
+  document.querySelectorAll('.salary-tabs .stab')[idx].classList.add('active');
+  renderBills();
+}
+function filtered(){ return filter==='all'?bills:bills.filter(b=>b.cycle===filter); }
+
+/* Render bills */
+function renderBills(){
+  document.getElementById('dateDisplay').textContent = formatDate();
+  const isCur = billsYear===todayD().getFullYear()&&billsMonth===todayD().getMonth();
+  document.getElementById('billsMonthLabel').textContent = MONTHS3[billsMonth]+' '+billsYear+(isCur?' · Now':'');
+
+  const list=filtered();
+  const total=list.reduce((s,b)=>s+b.amount,0);
+  const paidAmt=list.filter(b=>isPaid(b.id,billsYear,billsMonth)).reduce((s,b)=>s+b.amount,0);
+  const unpaid=total-paidAmt;
+  const pct=total?Math.round(paidAmt/total*100):0;
+
+  document.getElementById('summaryCards').innerHTML=`
+    <div class="sum-card"><div class="sum-label">Total</div><div class="sum-value purple">₱${fmt(total)}</div></div>
+    <div class="sum-card"><div class="sum-label">Paid</div><div class="sum-value green">₱${fmt(paidAmt)}</div></div>
+    <div class="sum-card"><div class="sum-label">Remaining</div><div class="sum-value red">₱${fmt(unpaid)}</div></div>
+    <div class="sum-card"><div class="sum-label">Done</div><div class="sum-value">${pct}%</div></div>`;
+
+  const fill=document.getElementById('progressFill');
+  fill.style.width=pct+'%';
+  fill.style.background=pct===100?'linear-gradient(90deg,var(--green),#6ee7b7)':'linear-gradient(90deg,var(--accent),#a78bfa,var(--red))';
+
+  const unpaidB=list.filter(b=>!isPaid(b.id,billsYear,billsMonth)).sort((a,b)=>a.due-b.due);
+  const paidB  =list.filter(b=> isPaid(b.id,billsYear,billsMonth)).sort((a,b)=>a.due-b.due);
+  let html='';
+  if(!list.length){
+    html=`<div class="empty-state"><div class="emoji">💸</div><p>No bills yet.<br>Tap + to add one.</p></div>`;
+  } else {
+    if(unpaidB.length){ html+=`<div class="section-label">To Pay · ${unpaidB.length}</div>`; unpaidB.forEach(b=>html+=billCard(b,billsYear,billsMonth)); }
+    if(paidB.length)  { html+=`<div class="section-label">Paid · ${paidB.length}</div>`;     paidB.forEach(b=>html+=billCard(b,billsYear,billsMonth)); }
+  }
+  document.getElementById('billList').innerHTML=html;
+}
+
+function billCard(b,yr,mo){
+  const paid=isPaid(b.id,yr,mo);
+  const due=getDueStatus(b.due,yr,mo);
+  return`<div class="bill-card cycle${b.cycle}${paid?' paid':''}" onclick="openEdit('${b.id}')">
+    <div class="bill-icon">${b.cat}</div>
+    <div class="bill-info">
+      <div class="bill-name">${b.name}</div>
+      <div class="bill-meta">${b.cycle==='15'?'15th':'30th'} salary · due ${b.due}${b.due===1?'st':b.due===2?'nd':b.due===3?'rd':'th'}</div>
+    </div>
+    <div class="bill-right">
+      <div class="bill-amount">₱${fmt(b.amount)}</div>
+      <div class="bill-due${due.ov&&!paid?' overdue':''}">${paid?'✓ Paid':due.label}</div>
+    </div>
+    <div class="check-btn${paid?' paid-check':''}" onclick="togglePaid(event,'${b.id}',${yr},${mo})">${paid?'✓':''}</div>
+  </div>`;
+}
+
+/* Calendar */
+function changeCalMonth(d){ calMonth+=d; if(calMonth>11){calMonth=0;calYear++;} if(calMonth<0){calMonth=11;calYear--;} selectedDay=null; renderCal(); }
+
+function renderCal(){
+  const now=todayD();
+  document.getElementById('calMonthTitle').textContent=`${MONTHS[calMonth]} ${calYear}`;
+  const b15=bills.filter(b=>b.cycle==='15'), b30=bills.filter(b=>b.cycle==='30');
+  const t15=b15.reduce((s,b)=>s+b.amount,0), t30=b30.reduce((s,b)=>s+b.amount,0);
+  const p15=b15.filter(b=>isPaid(b.id,calYear,calMonth)).reduce((s,b)=>s+b.amount,0);
+  const p30=b30.filter(b=>isPaid(b.id,calYear,calMonth)).reduce((s,b)=>s+b.amount,0);
+  document.getElementById('salaryBands').innerHTML=`
+    <div class="sal-band s15"><span>💜</span><div><strong>15th Salary</strong> &nbsp;·&nbsp; ₱${fmt(p15)} of ₱${fmt(t15)} paid</div></div>
+    <div class="sal-band s30" style="margin-bottom:12px"><span>🟡</span><div><strong>30th Salary</strong> &nbsp;·&nbsp; ₱${fmt(p30)} of ₱${fmt(t30)} paid</div></div>`;
+
+  document.getElementById('calDows').innerHTML=DOWS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const fd=new Date(calYear,calMonth,1).getDay();
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  let html='';
+  for(let i=0;i<fd;i++) html+=`<div class="cal-day empty"></div>`;
+  for(let day=1;day<=dim;day++){
+    const isT=day===now.getDate()&&calMonth===now.getMonth()&&calYear===now.getFullYear();
+    const isSal15=day===15, isSal30=(day===30||(day===dim&&dim<30));
+    const isSel=day===selectedDay;
+    const db=bills.filter(b=>b.due===day);
+    let cls='cal-day';
+    if(isT)    cls+=' is-today';
+    if(isSal15&&!isSel) cls+=' is-sal15';
+    if(isSal30&&!isSel) cls+=' is-sal30';
+    if(isSel)  cls+=' is-sel';
+    const salH=isSal15?`<div class="day-sal s15">SAL</div>`:isSal30?`<div class="day-sal s30">SAL</div>`:'';
+    const dotsH=db.length?`<div class="day-dots">${db.map(b=>`<div class="day-dot ${isPaid(b.id,calYear,calMonth)?'cpaid':b.cycle==='15'?'c15':'c30'}"></div>`).join('')}</div>`:'';
+    html+=`<div class="${cls}" onclick="selectDay(${day})"><div class="day-num">${day}</div>${salH}${dotsH}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=html;
+  renderDayBills();
+}
+
+function selectDay(d){ selectedDay=selectedDay===d?null:d; renderCal(); }
+
+function renderDayBills(){
+  const area=document.getElementById('dayBillsArea');
+  if(!selectedDay){area.innerHTML='';return;}
+  const db=bills.filter(b=>b.due===selectedDay);
+  if(!db.length){
+    area.innerHTML=`<div class="day-panel-label">Day ${selectedDay}</div><div class="empty-state" style="padding:16px 0"><p>No bills due on day ${selectedDay}</p></div>`;
+    return;
+  }
+  let html=`<div class="day-panel-label">Due · ${selectedDay} ${MONTHS3[calMonth]} ${calYear}</div>`;
+  db.forEach(b=>{
+    const paid=isPaid(b.id,calYear,calMonth);
+    html+=`<div class="day-bill-row cycle${b.cycle}${paid?' paid':''}" onclick="openEdit('${b.id}')">
+      <div style="font-size:20px;flex-shrink:0">${b.cat}</div>
+      <div style="flex:1;min-width:0"><div class="dbr-name">${b.name}</div><div class="dbr-meta">${b.cycle==='15'?'15th':'30th'} salary</div></div>
+      <div class="dbr-amt">₱${fmt(b.amount)}</div>
+      <div class="check-btn${paid?' paid-check':''}" onclick="togglePaid(event,'${b.id}',${calYear},${calMonth})">${paid?'✓':''}</div>
+    </div>`;
+  });
+  area.innerHTML=html;
+}
+
+/* Toggle paid */
+function togglePaid(e,id,yr,mo){
+  e.stopPropagation();
+  const b=bills.find(x=>x.id===id); if(!b) return;
+  const nv=!isPaid(id,yr,mo); setPaid(id,yr,mo,nv);
+  if(currentView==='bills') renderBills(); else renderCal();
+  showToast(nv?`✓ ${b.name} paid for ${MONTHS3[mo]}!`:`↩ ${b.name} unpaid for ${MONTHS3[mo]}`);
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* Modal */
+function openAdd(){
+  editId=null; selectedCycle='15';
+  document.getElementById('sheetTitle').textContent='New Bill';
+  document.getElementById('fName').value='';
+  document.getElementById('fAmount').value='';
+  document.getElementById('fDue').value=selectedDay||'';
+  document.getElementById('fCat').value='⚡';
+  document.getElementById('deleteBtn').style.display='none';
+  updateCycleBtns();
+  document.getElementById('overlay').classList.add('show');
+}
+function openEdit(id){
+  const b=bills.find(x=>x.id===id); if(!b) return;
+  editId=id; selectedCycle=b.cycle;
+  document.getElementById('sheetTitle').textContent='Edit Bill';
+  document.getElementById('fName').value=b.name;
+  document.getElementById('fAmount').value=b.amount;
+  document.getElementById('fDue').value=b.due;
+  document.getElementById('fCat').value=b.cat;
+  document.getElementById('deleteBtn').style.display='block';
+  updateCycleBtns();
+  document.getElementById('overlay').classList.add('show');
+}
+function setCycle(c){ selectedCycle=c; updateCycleBtns(); }
+function updateCycleBtns(){
+  document.getElementById('btn15').className='cycle-btn'+(selectedCycle==='15'?' sel15':'');
+  document.getElementById('btn30').className='cycle-btn'+(selectedCycle==='30'?' sel30':'');
+}
+function saveBill(){
+  const name=document.getElementById('fName').value.trim();
+  const amount=parseFloat(document.getElementById('fAmount').value);
+  const due=parseInt(document.getElementById('fDue').value);
+  const cat=document.getElementById('fCat').value;
+  if(!name||isNaN(amount)||isNaN(due)){ showToast('⚠️ Please fill all fields'); return; }
+  if(editId){ const b=bills.find(x=>x.id===editId); Object.assign(b,{name,amount,due,cat,cycle:selectedCycle}); }
+  else bills.push({id:uid(),name,amount,due,cat,cycle:selectedCycle});
+  saveAll();
+  document.getElementById('overlay').classList.remove('show');
+  if(currentView==='bills') renderBills(); else renderCal();
+  showToast(editId?'Bill updated ✓':'Bill added ✓');
+}
+function deleteBill(){
+  if(!editId) return;
+  Object.keys(payments).forEach(k=>{ if(k.startsWith(editId+'_')) delete payments[k]; });
+  bills=bills.filter(x=>x.id!==editId);
+  saveAll();
+  document.getElementById('overlay').classList.remove('show');
+  if(currentView==='bills') renderBills(); else renderCal();
+  showToast('Bill deleted');
+}
+function handleOverlayClick(e){
+  if(e.target===document.getElementById('overlay')) document.getElementById('overlay').classList.remove('show');
+}
+
+load();
+renderBills();
+document.getElementById('dateDisplay').textContent = formatDate();
+</script>
+</body>
+</html>
